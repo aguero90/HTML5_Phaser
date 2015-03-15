@@ -1,0 +1,32 @@
+3) migliorare graficamente screen
+
+4) gestire logicamente screen
+
+HO OPTATO PER LA a).
+5) vedere come rendere indipendente il livello: per cambiarlo fare una semplice
+   chiamata tipo "new Level("level_07")" oppure "level.create("level_07")"
+   Qui le strategie di base sono 2:
+        a) caricare TUTTI i livelli nella preload() e poi cambiarli rapidamente
+           appena l'utente completa il livello
+        b) caricarli su richiesta: allinizio carico solo il livello 1, una volta
+           completato, se l'utente vuole andare avanti, carico il livello 2 ecc.
+
+8) ENJOY THE GAME!
+
+
+x.1) se ti si crea migliora il font per i soldi e le vite, magari creando un bitmap font
+
+
+
+================================================================================
+PROBLEMI
+================================================================================
+
+nel primo livello, il player non riesce a colpire il primo blocco o.O
+
+Quando il giocatore colpisce la bandierina, se colpisce 2 tail viene chiamata 2
+volte la callback della collisione e quindi si passa dal livello 1 al 3 oppure dal
+2 al 4 T_T
+
+
+

@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8" />
+        <title>Phaser</title>
+        <!-- Per usare Phaser dobbiamo solo importare il file phaser.js -->
+        <script type="text/javascript" src="../lib/phaser.js"></script>
+        <style type="text/css">
+            body {
+                margin: 0;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <!-- Non c'è bisogno dell'elemento <canvas> poichè ci pensera phaser a crearlo -->
+
+        <script type="text/javascript">
+            // new Game(width, height, renderer, parent, state, transparent, antialias, physicsConfig)
+            //
+            //      renderer: metodo di rendering ( WebGL o Canvas ). Con Phaser.AUTO l'engine verifica
+            //                se è possibile renderizzare tramite WebGL altrimenti degrada a Canvas
+            //
+            //      parent: l'elemento HTML all'interno del quale creare l'elemento canvas
+            //
+            //      state: un oggetto contenente riferimenti a funzioni che gestiranno gli stati del gioco
+            var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
+                preload: preload,
+                loadUpdate: loadUpdate,
+                create: create,
+                update: update
+            });
+
+            // preload è lo stato in cui va caricato il tutto ( sprite, imamgini, audio ecc )
+            // può essere inserita una barra di caricamento se i dati da caricare sono molti
+            function preload() {
+
+                game.preloadBarBackground = game.add.graphics(game.width / 10, game.height / 2);
+                game.preloadBarBackground.lineStyle(10, 0xffff00, 0.5);
+                game.preloadBarBackground.moveTo(0, 0);
+                game.preloadBarBackground.lineTo(game.width - (game.width / 5), 0);
+
+                // graphics(x, y, group)
+                //
+                //  - group è opzionale ed indica eventualmente a quale gruppo aggiungere
+                //    l'oggetto che si sta creando
+                game.preloadBar = game.add.graphics(game.width / 10, game.height / 2);
+
+                // lineStyle ( lineWidth, color, alpha ) by PixiJS
+                game.preloadBar.lineStyle(10, 0xffff00, 1);
+
+                // moveTo (x, y) by PixiJS
+                // posiziona l'oggetto grafico creato alle coordinate passate
+                game.preloadBar.moveTo(0, 0);
+
+                // lineTo (x, y) by PixiJS
+                // Disegna una linea dalla posizione corrente dell'oggetto grafico alle coordinate che gli passiamo
+                // dopodichè setta la nuova posizione corrente a quella passata
+                game.preloadBar.lineTo(game.width - (game.width / 5), 0);
+
+                // scale Point by PixiJS
+                // il fattore di scaling dell'oggetto
+                game.preloadBar.scale.x = 0; // set the bar to the beginning position
+
+
+                game.preloadPercentage = game.add.text(game.width / 2, game.height / 2 - 50, "0%", {font: "20px arial", fill: "#ffffff", fontWeight: "bold", align: "center"});
+
+
+
+
+                // carica un'immagine e gli associa come chiave la stringa "background"
+                game.load.image('background', 'assets/bg.png');
+                // spritesheet(key, url, frameWidth, frameHeight, frameMax, margin, spacing)
+                //
+                // carica uno spritesheet assegnandogli una chiave
+                // e dice al framework di dividerelo in quadrati da 250x250 px
+                game.load.spritesheet('enemyA', 'assets/enemyA.png', 250, 250);
+                game.load.spritesheet('enemyB', 'assets/enemyB.png', 250, 250);
+                game.load.spritesheet('enemyC', 'assets/enemyC.png', 250, 250);
+                game.load.spritesheet('enemyD', 'assets/enemyD.png', 250, 250);
+                game.load.spritesheet('bonus', 'assets/bonus.png', 250, 250);
+                game.load.spritesheet('pacMan', 'assets/PacMan.png', 250, 250);
+
+
+                // carichiamo la mappa
+                game.load.tilemap('map', 'assets/tileMap.json', null, Phaser.Tilemap.TILED_JSON);
+                game.load.spritesheet('mapSprite', 'assets/tiles.png', 32, 32);
+
+
+                // carichiamo l'audio
+                game.load.audio('effect', ['assets/fx.mp3', 'assets/fx.ogg']);
+                game.load.audio('pacManDie', ['assets/pacManDie.mp3', 'assets/pacManDie.ogg']);
+                game.load.audio('pacManEatGhost', ['assets/pacManEatGhost.mp3', 'assets/pacManEatGhost.ogg']);
+                game.load.audio('pacManEatCherry', ['assets/pacManEatCherry.mp3', 'assets/pacManEatCherry.ogg']);
+                game.load.audio('opening', ['assets/opening.mp3', 'assets/opening.ogg']);
+            }
+
+            // questa funzione viene chiamata dal sistema mentre la funzione preload() è ancora attiva
+            // l'obiettivo di questa funzione è quello di renderizzare i progressi del download (game.load.progress)
+            function loadUpdate() {
+                // durante ogni frame del caricamento
+                game.preloadBar.scale.x = game.load.progress * 0.01;
+                game.preloadPercentage.text = game.load.progress + "%";
+
+                if (game.load.progress === 100) {
+                    // una volta completato il caricamento eliminiamo le cose inutili
+                    game.preloadBarBackground.destroy();
+                    game.preloadBar.destroy();
+                    game.preloadPercentage.destroy();
+                }
+            }
+
+            var player;
+            var bonus;
+            var enemis;
+
+            var map;
+            var layer;
+
+            var score;
+            var scoreText;
+
+            var opening;
+            var effect;
+            var pacManDieSound;
+            var pacManEatGhostSound;
+            var pacManEatCherrySound;
+
+            var cursors;
+
+            // in questo stato va creato tutto ciò che sarà necessario per il nostro gioco
+            function create() {
+
+                // Scegliamo un sistema di fisica da usare nel gioco:
+                //      Phaser.Physics.ARCADE: attivato di default
+                //      Phaser.Physics.P2JS: sistema di fisica full-body
+                //      Phaser.Physics.NINJA:
+                //      Phaser.Physics.BOX2D: in via di sviluppo
+                //      Phaser.Physics.CHIPMUNK: in via di sviluppo
+                game.physics.startSystem(Phaser.Physics.ARCADE);
+
+                // add.sprite(x, y, key, frame, group)
+                game.add.sprite(0, 0, 'background').scale.setTo(3);
+
+                // add.group(parent, name, addToStage, enableBody, physicsBodyType)
+                //
+                // Un group raggruppa oggetti da mettere a video (sprite ecc)
+                // in modo da garantire un pooling più veloce e
+                // controllare le collisioni verso gruppi
+                enemis = game.add.group();
+
+                // abilitiamo la fisica su tutti gli oggetti del gruppo
+                enemis.enableBody = true;
+
+                var enemy;
+
+                // Group.create(x, y, key, frame, exists)
+                enemy = enemis.create(game.world.randomX, game.world.randomY, "enemyA");
+                enemy.anchor.set(0.5, 0.5);
+                enemy.scale.setTo(0.1);
+                enemy.body.immovable = true;
+                // tween è una transizione
+                enemy.tween = game.add.tween(enemy);
+                // la transizione muove il nemico dalla sua posizione attuale
+                // al centro dello schermo in 1 secondo
+                enemy.tween.to({
+                    x: game.world.centerX,
+                    y: game.world.centerY
+                }, 1000);
+
+                enemy = enemis.create(game.world.randomX, game.world.randomY, "enemyB");
+                enemy.anchor.set(0.5, 0.5);
+                enemy.scale.setTo(0.1);
+                enemy.body.immovable = true;
+                enemy.tween = game.add.tween(enemy);
+                enemy.tween.to({
+                    x: game.world.centerX,
+                    y: game.world.centerY
+                }, 1000);
+
+                enemy = enemis.create(game.world.randomX, game.world.randomY, "enemyC");
+                enemy.anchor.set(0.5, 0.5);
+                enemy.scale.setTo(0.1);
+                enemy.body.immovable = true;
+                enemy.tween = game.add.tween(enemy);
+                enemy.tween.to({
+                    x: game.world.centerX,
+                    y: game.world.centerY
+                }, 1000);
+
+                enemy = enemis.create(game.world.randomX, game.world.randomY, "enemyD");
+                enemy.anchor.set(0.5, 0.5);
+                enemy.scale.setTo(0.1);
+                enemy.body.immovable = true;
+                enemy.tween = game.add.tween(enemy);
+                enemy.tween.to({
+                    x: game.world.centerX,
+                    y: game.world.centerY
+                }, 1000);
+
+
+                // inseriamo i bonus
+                bonus = game.add.group();
+                bonus.enableBody = true;
+
+                var singleBonus;
+                var aviableBonusFrame = [0, 2, 4, 6, 8];
+
+                for (var i = 0; i < 7; i++) {
+                    singleBonus = bonus.create(game.world.randomX, game.world.randomY, "bonus", aviableBonusFrame[Math.floor(Math.random() * aviableBonusFrame.length)]);
+                    singleBonus.anchor.set(0.5, 0.5);
+                    singleBonus.scale.setTo(0.1);
+                    singleBonus.body.immovable = true;
+                }
+
+
+                // creiamo il giocatore
+                player = game.add.sprite(game.world.randomX, game.world.randomY, 'pacMan');
+
+                // Abilitiamo la fisica sul player
+                game.physics.arcade.enable(player);
+
+                // diciamo che il player può collidere con i margini del mondo
+                // cioè chiudiamo il mondo, se il player ci sbatte è come se avesse davanti
+                // un muro
+                player.body.collideWorldBounds = true;
+                player.anchor.set(0.5, 0.5);
+                player.scale.setTo(0.1);
+
+                // AnimationManager.add(name, frames, frameRate, loop, useNumericIndex)
+                //
+                // creiamo un animazione con i frame 0, 2 e 4 dello spritesheet caricato e
+                // salvato come "pacMan", diamo a questa animazione il nome "move"
+                // gli diamo un frameRate di 10 e diciamo che deve essere un loop
+                player.animations.add('move', [0, 2, 4], 10, true);
+
+
+                // aggiungiamo il testo
+                score = 0;
+                scoreText = game.add.text(10, 10, "Score: 0", {font: "16px arial", fill: "#ffffff", fontWeight: "bold"});
+                game.add.text(game.width - 100, 10, "Pac-Man", {font: "14px arial", fill: "#ffffff", fontWeight: "italic"});
+
+                // aggiungiamo l'audio
+                effect = game.add.audio("effect");
+                pacManDieSound = game.add.audio("pacManDie");
+                pacManEatGhostSound = game.add.audio("pacManEatGhost");
+                pacManEatCherrySound = game.add.audio("pacManEatCherry");
+
+                // avviamo l'opening
+                opening = game.add.audio("opening").play();
+
+                // creiamo la mappa
+                map = game.add.tilemap('map');
+                // addTilesetImage(a, b);
+                //
+                //  a: il nome del tilesets nel JSON
+                //  b: il nome dello stesso file caricato nella preload
+                map.addTilesetImage('map', 'mapSprite');
+
+                // prende il nome del layer nel JSON
+                layer = map.createLayer('Tile Layer 1');
+                layer.resizeWorld();
+
+
+                // Ci mettiamo in ascolto della pressione delle frecce della tastiera
+                cursors = game.input.keyboard.createCursorKeys();
+            }
+
+
+            // questo stato rappresenta il game loop
+            function update() {
+
+                if (opening.isPlaying) {
+                    // per fare in modo che durante l'opening non accada nulla
+                    return;
+                }
+                // Arcade.overlap(object1, object2, overlapCallback, processCallback, callbackContext)
+                //
+                // diciamo che nel momento in cui il player collide con un qualunque
+                // oggetto presente nel gruppo enemis verrà eseguita la callback hitEnemy()
+                // il cui contesto di esecuzione è impostato a "this" ( cioè quello della funzione update )
+                //
+                // processCallback è una callback da settare per fare controlli sulla collisione
+                // se la impostiamo, la overlapCallback sarà eseguita solo se la processCallback
+                // restituirà true
+                game.physics.arcade.overlap(player, enemis, hitEnemy, null, this);
+                game.physics.arcade.overlap(player, bonus, collectBonus, null, this);
+                game.physics.arcade.collide(player, layer);
+
+
+                // resettiamo a 0 sia la velocità orizzontale che quella verticale
+                player.body.velocity.x = 0;
+                player.body.velocity.y = 0;
+
+                // controlliamo se l'utente sta premendo qualche freccia
+                if (cursors.left.isDown) {
+                    //  Move to the left
+                    player.body.velocity.x = -150;
+                    player.rotation = Math.PI; // 180°
+                    player.animations.play('move');
+
+                    // mettiamo tutti i default eccetto per l'ultimo parametro che
+                    // di default andava a true ma in questo modo avrebbe forzato l'audio
+                    // a ripartire
+                    effect.play("", 0, 1, false, false);
+                } else if (cursors.right.isDown) {
+                    //  Move to the right
+                    player.body.velocity.x = 150;
+                    player.rotation = 0; // 0°
+                    player.animations.play('move');
+                    effect.play("", 0, 1, false, false);
+                } else if (cursors.up.isDown) {
+                    // move up
+                    player.body.velocity.y = -150;
+                    player.rotation = Math.PI * 3 / 2; // 270°
+                    player.animations.play('move');
+                    effect.play("", 0, 1, false, false);
+                } else if (cursors.down.isDown) {
+                    //move down
+                    player.body.velocity.y = 150;
+                    player.rotation = Math.PI / 2; // 90°
+                    player.animations.play('move');
+                    effect.play("", 0, 1, false, false);
+                } else {
+                    //  Stand still
+                    player.animations.stop();
+                    player.frame = 2;
+                }
+            }
+
+            // funzione di callback chiamata nel momento in cui ci sarà una collisione tra player e nemico
+            // il framework ci passerà come parametri i due oggetti hanno avuto questa collisione
+            // nell'ordine specificato nella creazione del controllo
+            function hitEnemy(player, enemy) {
+
+                // per evitare che le collisioni con lo stesso sprite si sovrappongano e
+                // che quindi il tween non parta fino a quando queste collisioni non cessano
+                if (!enemy.eated) {
+                    if (enemy.isWeak) {
+
+                        pacManEatGhostSound.play();
+
+                        //aggiorniamo il punteggio
+                        updateScore(500);
+
+                        enemy.eated = true;
+                        // avviamo la transizione che abbiamo definito precedentemente
+                        enemy.tween.start();
+                    } else {
+                        effect.stop();
+                        pacManDieSound.play();
+
+                        player.kill();
+                    }
+                }
+            }
+
+            function collectBonus(player, bonus) {
+
+                pacManEatCherrySound.play();
+
+                // distruggiamo il bonus mangiato
+                bonus.destroy();
+
+                // aggiorniamo il punteggio
+                updateScore(100);
+
+
+                var enemy;
+                for (var index = 0; index < enemis.length; index++) {
+                    enemy = enemis.getAt(index);
+                    if (!enemy.eated) {
+                        enemy.loadTexture(enemy.key, 10);
+
+                        if (!enemy.isWeak) {
+                            enemy.isWeak = true; // diciamo che il nemico è debole
+                            // impostiamo un timeout per la debolezza dei nemici
+                            //
+                            // NOTA: passiamo alla funzione di callback il parametro in modo
+                            // da farglielo salvare. Così ogni callback avrà effettivamente un enemy
+                            // diverso. Se non avessimo fatto così ma sfruttando l'effetto closure
+                            // tutte le callback avrebbero avuto il riferimento all'ultimo enemy:
+                            // quello dell'ultimo ciclo del for
+                            setTimeout(function (enemy) {
+                                // ripristiniamo lo stato del nemico
+                                enemy.loadTexture(enemy.key, 0);
+                                enemy.isWeak = false;
+                            }, 5000, enemy);
+                        }
+                    }
+                }
+            }
+
+
+            function updateScore(scoreToAdd) {
+                scoreToAdd--;
+                score++;
+                scoreText.text = "Score: " + score;
+                if (scoreToAdd > 0) {
+                    setTimeout(updateScore, 1, scoreToAdd);
+                }
+            }
+            ;
+        </script>
+
+    </body>
+
+</html>

@@ -1,0 +1,117 @@
+{
+    "frames": [
+        {
+            "filename": "hexagon",
+            "frame": {
+                "x": 5,
+                "y": 5,
+                "w": 120,
+                "h": 120
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 120,
+                "h": 120
+            },
+            "sourceSize": {
+                "w": 120,
+                "h": 120
+            },
+            "pivot": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "triangle",
+            "frame": {
+                "x": 131,
+                "y": 3,
+                "w": 120,
+                "h": 120
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 120,
+                "h": 120
+            },
+            "sourceSize": {
+                "w": 120,
+                "h": 120
+            },
+            "pivot": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "square",
+            "frame": {
+                "x": 5,
+                "y": 132,
+                "w": 120,
+                "h": 120
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 120,
+                "h": 120
+            },
+            "sourceSize": {
+                "w": 120,
+                "h": 120
+            },
+            "pivot": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "ball",
+            "frame": {
+                "x": 130,
+                "y": 130,
+                "w": 125,
+                "h": 125
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 125,
+                "h": 125
+            },
+            "sourceSize": {
+                "w": 125,
+                "h": 125
+            },
+            "pivot": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        }
+
+    ],
+    "meta": {
+        "app": "http://www.codeandweb.com/texturepacker",
+        "version": "1.0",
+        "image": "superMarioTiles.png",
+        "format": "RGBA8888",
+        "size": {
+            "w": 128,
+            "h": 128
+        },
+        "scale": "1",
+        "smartupdate": "$TexturePacker:SmartUpdate:dbf92ca35b9b4f1e3e8b606fed3f9bd9:664d7f90f2e7579f126514087f23f7e0:237abcbb2c4731a1d5c992e0b3cea403$"
+    }
+}
